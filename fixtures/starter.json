@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "version": 1,
+  "contacts": [
+    { "id": "C-101", "name": "Alex Rivera", "email": "alex@northstar.example", "company": "Northstar", "phone": "+1-416-555-0101", "stage": "Lead", "revision": 1 },
+    { "id": "C-102", "name": "Alex Rivera", "email": "alex@harbor.example", "company": "Harbor", "phone": "+1-416-555-0202", "stage": "Customer", "revision": 1 },
+    { "id": "C-103", "name": "Morgan Lee", "email": "morgan@cedar.example", "company": "Cedar", "phone": "+1-416-555-0303", "stage": "Qualified", "revision": 1 }
+  ],
+  "audit": []
+}
