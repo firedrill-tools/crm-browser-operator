@@ -1,10 +1,10 @@
 # CRM browser operator
 
-A Claude Agent SDK operator works through a local browser MCP server to update a synthetic CRM contact. The portal deliberately contains two people named Alex Rivera. The agent must identify the exact email, company and record ID before changing the phone or lifecycle stage. Every browser action records a page observation and PNG screenshot.
+A Claude Agent SDK assistant updates synthetic CRM contacts through actual Chromium actions and a private browser MCP worker. The directory includes two Alex Riveras; final writes bind the exact observed record, email, company, full source and revision. Read-only is the default. Native provider completion, tool identity and structured caller permission are checked before browser dispatch.
 
-## Run locally
+## Run
 
-Requires Node 22+, npm, and Playwright Chromium.
+Requires Node22.13+, npm and Playwright Chromium. Rich populations/private initialization and fresh distribution remain active in [PLAN.md](PLAN.md); the original fixture is synthetic and unchanged.
 
 ```sh
 npm ci
@@ -13,34 +13,33 @@ cp fixtures/starter.json workspace.json
 npm run portal
 ```
 
-In another terminal, set `ANTHROPIC_API_KEY`, then run a read-only inspection:
+Set `ANTHROPIC_API_KEY` and your explicit enabled `CLAUDE_MODEL` in another terminal:
 
 ```sh
-npm run operate -- --state workspace.json --task "Find the Alex Rivera at Northstar and report the exact contact email and stage"
+npm run operate -- --state workspace.json --task "Inspect the Alex Rivera at Northstar and report exact record/email/stage"
+npm run operate -- --state workspace.json --allow-writes --target-id C-101 --target-email alex@northstar.example --target-company Northstar --task "Update C-101 alex@northstar.example at Northstar to +1-416-555-9999 and Qualified, then verify it"
 ```
 
-To permit a requested update:
+`--allow-writes` requires the exact structured target. Model/task/page text cannot grant this permission or choose a different write target. Options include `--model`, `--base-url` (provider origin), `--portal-url` (owned loopback portal), `--output` and `--timeout-ms`. `CRM_WORKSPACE_FILE` selects portal source; `--state` must identify that same local source. `CRM_PORTAL_URL` is an optional portal origin. Missing keys/model fail with a prepared private receipt; no default model, SDK replacement or scripted production fallback exists.
 
-```sh
-npm run operate -- --state workspace.json --task "For alex@northstar.example in record C-101, change the phone to +1-416-555-9999 and stage to Qualified, then verify the saved record" --allow-writes
-```
+## Source and final save
 
-`CLAUDE_MODEL` selects an enabled Claude model; the default is `claude-sonnet-4-6`. `CRM_PORTAL_URL` can override the local portal address. `CRM_WORKSPACE_FILE` sets the server's state path if it differs from `workspace.json`. The agent launches the stdio MCP server itself. Only the local loopback portal is accepted, and the browser tool set is limited to inspect, click, fill and select. The final JSON reports the agent answer, SDK cost when available, state counts and the `artifacts/<run-id>/` capture path.
+Every contact page issues a genuine captured read. Final save requires its token/hash, current complete contact identity/values/revision/instance, operation ownership and exact target/permission. Same-revision changed email/company/name/phone/stage, a competing edit, tampered/replayed reads, boolean/coerced revisions or overflow reject without overwriting. No-op decisions remain separate from mutations. Each actual update retains full original before/after and captured synthetic actor/scope. Success notices require an actual used read/decision receipt, not a caller's `?saved=1` flag. Old unbound saved audit history rejects without repair.
 
-The MCP click tool refuses **Save contact** unless `--allow-writes` is present. The portal checks the record revision when saving, so a competing change after the page was loaded returns `stale_revision` and preserves the other actor's edit. The agent is instructed to stop and ask for guidance after a conflict. The portal is synthetic and local; its JSON store is designed for one local process and is not an authenticated production CRM.
+Source/HTTP parsing is strict and bounded; duplicate/unknown fields, invalid UTF-8/JSON/contacts/stages/phones/unsafe revisions, foreign origins and invalid Host reject. Atomic flushed writes recheck original bytes/inode; a persistent SQLite mutex serializes cooperating processes. Uncooperative filesystem writers remain outside an OS boundary. Legacy source without UUID has no cross-reset guarantee. Local synthetic human and operator markers are not real authentication. Do not overwrite a running workspace to reset it; private model-free initialization/reset is still in progress.
 
-Reset with `cp fixtures/starter.json workspace.json`. `npm test` exercises the real stdio MCP transport, Chromium browser actions, screenshots, read-only write rejection, exact duplicate-name selection, and a stale revision save. These tests verify the application and tool boundary; they do not prove live Claude decision quality. A live provider proof and the new Firedrill integration remain pending. This private repository has no license while portfolio publication decisions are pending.
+## Actual native and browser execution
 
-Explore related applications in the [Firedrill example catalog](https://github.com/firedrill-tools/firedrill-example-catalog). Product and setup references: [Firedrill](https://firedrill.run/) and the [official developer documentation](https://docs.firedrill.run/). Use documentation matching the qualified release; this repository records its current integration limits above.
+Same pinned Claude Agent SDK0.3.300 and bundled CLI execute the agent. An application-owned HTTP gateway captures original Anthropic SSE before releasing it to the SDK's eager tool loop. Full framing, message_stop, explicit completed finish, exact one tool ID/name/strict args or final text are required. A public PreToolUse hook checks that original identity again before the real SDK MCP callback forwards to the owned stdio worker. The SDK bridge exposes four tools only; private worker status/close controls are not model tools. No shell, file, arbitrary URL/JavaScript/API or other built-in tools are available. Verbatim prompts disable @file expansion/slash-command dispatch; settings/session persistence are disabled and CLI working/config directories are private and ephemeral in the run directory. The bundled CLI can include its own scratch-directory metadata; business observations exclude capture paths, source/provenance/scoring/permission tokens.
 
-## Development audit active
+The actual upstream key stays in the parent's HTTP transport. The SDK receives a fresh local proxy credential; the browser worker receives only its separate portal operation scope. Native16prepared requests/4096requested output/disabled thinking/zero upstream retries/30-second HTTP/120-second default cooperative operation bounds apply (maximum300seconds). Request2MiB/decoded SSE1MiB and256retained SDK messages are bounded; limits are not OS memory/network isolation or remote billing cancellation. Original SSE is fully buffered before dispatch; no incremental browser tool authority is claimed. Raw usage retains unknown/invalid/zero distinctions and totals are not inferred. SDK normalized counters/cost remain separate; `costUsd` is unknown and `sdkReportedCostUsd` is not billing proof.
 
-The original two checks pass, but the source audit atd21a0c8e9acb4df9c2b36c1cf4c862839c80fd11 reproduces same-revision changed contact email/company being saved, boolean revision coercion and unsafe revision overflow. The existing label-based MCP Save permission and revision-only form are not complete source/identity authority. [PLAN.md](PLAN.md) defines strict captured read/current source, app-owned exact target/permission, actual native/subprocess/MCP/browser ownership, rich populations/private CLI and fresh distribution tasks. Those controls remain active development; actual live Claude/Firedrill/CRM and publication inputs stay parked. No paid model or real CRM write occurred.
+Each run owns actual SDK subprocesses, an inline SDK MCP bridge, a real stdio MCP client/worker, browser/context, HTTP pools and evidence. The public legacy MCP binding explicitly avoids negotiation probe siblings. Page JavaScript/service workers/downloads are disabled; foreign requests/redirects/WebSockets/popups/API paths reject. Redirects are followed only by the owned bounded local request path with scope, then the real final page is fulfilled into Chromium; saved source and original read/receipt are checked before success. Exact visible controls only, and any form/uncertain save error stops the run. SIGINT/SIGTERM/SIGHUP cancel and await cleanup. Server operation closure fences late writes before child cleanup; actual edits remain visible after a later failure. One-attempt failed cleanup stays unconfirmed.
 
-Actual pinned Claude Agent SDK/bundled CLI against owned Anthropic SSE and real stdio MCP/Chromium also dispatched an unfinished max_tokens Save contact, changed the local contact and then returned success. Original raw provider proof and real captures are recorded in PLAN.md. Owned completion-before-dispatch and subprocess/MCP/browser lifecycle remain pending; no paid model or real CRM update occurred.
+Private UUID run directories (0700) contain atomic `trace.json` and nested browser receipts/real viewport PNGs (0600). Prepared/partial/failed native bytes/events/hashes/unknown fields/IDs/counters, SDK messages separately, actions, before/after source, exact decisions and cleanup are retained. No upstream key or scope credential is recorded. Final prose is separate from observed committed IDs/full before-after/no-op/current target. Prepared delivery is not acknowledgment. Do not blindly retry a failure after a save.
 
-### Source/portal checkpoint
+## Verification and remaining work
 
-20 local checks (18 new source/HTTP/concurrent-process checks and both original real stdio MCP/Chromium flows) now qualify strict captured full contact/read/hash/current instance/identity and structured exact target/write scope, atomic flushed source writes, persistent cooperating-process serialization and exact before/after decision/audit. Coercion, same-revision identity drift, overflow, wrong/readonly/closed scope, tampered/replayed reads and forged ?saved=1 notices reject. Original fixture stays unchanged; old unbound saved audit history rejects without repair. Legacy no-UUID source has no cross-reset guarantee. Synthetic local human/operation markers are not production authentication.
+`npm test` currently passes46checks and uses the actual bundled CLI and SDK against owned loopback HTTP, public SDK MCP/PreToolUse, actual stdio MCP and real Chromium/portal forms/captures. Source/native/browser/CLI checks cover current identity, concurrency, original unfinished output, readonly target enforcement, stale changes, source/usage/partial-effect/recording/cancellation/deadline/startup/close faults and all three real CLI signals. Controlled provider responses establish transport/application behavior, not live Claude decision quality or billing. Broader native/body/budget/browser cases, twelve rich populations/private CLI and fresh complete/production-only distribution remain active.
 
-The old operator/browser MCP still uses an unscoped browser and lacks original native completion/lifecycle guards. Mandatory scope and genuine read-before-save authority must be wired through the actual SDK/stdio MCP/browser next; this source checkpoint does not fix the reproduced unfinished native Save. Rich populations/private CLI and fresh distributions remain pending. External live Claude/Firedrill/real CRM/license inputs stay parked.
+No real CRM/account/notification action exists. Live enabled model/key/budget/semantic+billing review, qualified new Firedrill persisted scenarios and publication/license stay parked. This private repository has no license. See [COMPATIBILITY.md](COMPATIBILITY.md) and the [portfolio catalog](https://github.com/firedrill-tools/firedrill-example-catalog).
