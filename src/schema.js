@@ -1,5 +1,7 @@
 import {z} from 'zod';
 import {createHash} from 'node:crypto';
+import {DATASET_SHA256} from './_dataset-manifest.js';
+export const utc=z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/).refine(v=>{const d=new Date(v);return Number.isFinite(d.valueOf())&&d.toISOString().replace('.000Z','Z')===v.replace('.000Z','Z');},'valid exact UTC instant required');
 export const identifier=z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/),digest=z.string().regex(/^[a-f0-9]{64}$/),revision=z.number().int().min(1).max(Number.MAX_SAFE_INTEGER);
 const line=max=>z.string().min(1).max(max).refine(v=>!!v.trim()&&v.isWellFormed()&&!/[\x00-\x1f\x7f]/.test(v));
 export const email=z.string().min(3).max(254).regex(/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.example$/).refine(v=>{const local=v.split('@')[0];return local.length<=64&&!local.startsWith('.')&&!local.endsWith('.')&&!local.includes('..');});
@@ -12,7 +14,7 @@ const operationSchema=z.strictObject({id:z.string().uuid(),credential_sha256:dig
 const decisionSchema=z.strictObject({actor_kind:z.enum(['operator','synthetic_human']),operation_id:z.string().uuid().nullable(),task_sha256:digest.nullable(),read_sha256:digest,source:sourceSchema,after:contactSchema});
 const readSchema=z.strictObject({id:z.string().uuid(),source:sourceSchema,scope:scopeSchema,content_sha256:digest,status:z.enum(['observed','applied','unchanged']),decision:decisionSchema.nullable()});
 const auditSchema=z.strictObject({action:z.literal('update_contact'),id:identifier,read_id:z.string().uuid(),read_sha256:digest,before:contactSchema,after:contactSchema,revision});
-export const stateSchema=z.strictObject({synthetic:z.literal(true),version:z.literal(1),instance_id:z.string().uuid().optional(),contacts:z.array(contactSchema).min(1).max(2000),operations:z.array(operationSchema).max(512).optional(),reads:z.array(readSchema).max(4000).optional(),audit:z.array(auditSchema).max(8000)});
+export const stateSchema=z.strictObject({synthetic:z.literal(true),version:z.literal(1),instance_id:z.string().uuid().optional(),dataset:z.strictObject({id:z.literal('crm-populations'),version:z.literal('1.0.0'),case_id:identifier,source_sha256:z.literal(DATASET_SHA256)}).optional(),contacts:z.array(contactSchema).min(1).max(2000),operations:z.array(operationSchema).max(512).optional(),reads:z.array(readSchema).max(4000).optional(),audit:z.array(auditSchema).max(8000)});
 export const canonical=v=>Array.isArray(v)?`[${v.map(canonical).join(',')}]`:v!==null&&typeof v==='object'?`{${Object.keys(v).sort().map(k=>`${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`:JSON.stringify(v);
 export const hash=v=>createHash('sha256').update(v).digest('hex'),same=(a,b)=>canonical(a)===canonical(b),source=(state,contact)=>structuredClone({instance_id:state.instance_id??null,contact});
 export const readHash=r=>hash(canonical({id:r.id,source:r.source,scope:r.scope}));
@@ -20,7 +22,7 @@ export const matches=(contact,target)=>!!contact&&!!target&&contact.id===target.
 const identity=c=>({id:c.id,name:c.name,email:c.email,company:c.company});
 function unique(values,name){if(new Set(values).size!==values.length)throw Error(`duplicate ${name}`);}
 export function validateState(value){
- const state=stateSchema.parse(value),contacts=new Map(state.contacts.map(c=>[c.id,c])),ops=new Map((state.operations??[]).map(o=>[o.id,o])),reads=new Map((state.reads??[]).map(r=>[r.id,r]));
+ const state=stateSchema.parse(value);if(state.dataset&&!state.instance_id)throw Error('managed source requires a private instance');const contacts=new Map(state.contacts.map(c=>[c.id,c])),ops=new Map((state.operations??[]).map(o=>[o.id,o])),reads=new Map((state.reads??[]).map(r=>[r.id,r]));
  unique(state.contacts.map(c=>c.id),'contact ID');unique((state.operations??[]).map(o=>o.id),'operation ID');unique((state.operations??[]).map(o=>o.credential_sha256),'operation credential');unique((state.reads??[]).map(r=>r.id),'observed read ID');unique(state.audit.map(a=>a.read_id),'applied read audit');
  for(const op of ops.values())if(op.allow_writes?!op.target:op.target!==null)throw Error('write authority requires an exact structured target');
  for(const r of reads.values()){

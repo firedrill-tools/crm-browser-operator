@@ -8,8 +8,8 @@ import {identifier,digest,revision,phone,stage,targetSchema,source,same,hash,rea
 const inputSchema=z.strictObject({read_id:z.string().uuid(),read_sha256:digest,revision,phone,stage});
 const error=message=>({error:message});
 export class Store{
- constructor(file){const s=readSource(file);this.file=fs.realpathSync(file);this.instance=s.state.instance_id??null;this.lock=path.join(path.dirname(this.file),`.${path.basename(this.file)}.crm-lock.sqlite`);}
- snapshot(){const s=readSource(this.file);if((s.state.instance_id??null)!==this.instance)throw Error('workspace instance changed');return s;}
+ constructor(file){const s=readSource(file);this.file=fs.realpathSync(file);this.instance=s.state.instance_id??null;this.provenance=s.state.dataset??null;this.lock=path.join(path.dirname(this.file),`.${path.basename(this.file)}.crm-lock.sqlite`);}
+ snapshot(){const s=readSource(this.file);if((s.state.instance_id??null)!==this.instance||!same(s.state.dataset??null,this.provenance))throw Error('workspace instance changed');return s;}
  read(){return this.snapshot().state;}
  transaction(fn){
   if(fs.existsSync(this.lock)&&(!fs.lstatSync(this.lock).isFile()||fs.lstatSync(this.lock).isSymbolicLink()))throw Error('invalid workspace mutex');try{fs.closeSync(fs.openSync(this.lock,'wx',0o600));}catch(e){if(e.code!=='EEXIST')throw e;}

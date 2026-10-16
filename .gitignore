@@ -6,3 +6,4 @@ artifacts/
 .*.crm-lock.sqlite*
 dist/
 workspaces/
+workspace.json.source.json

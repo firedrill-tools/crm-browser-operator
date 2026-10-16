@@ -1,15 +1,19 @@
 {
   "name": "crm-browser-operator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "portal": "node src/server.js",
     "operate": "node src/agent.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "workspace": "node src/workspace.js",
+    "datasets:check": "node scripts/build-datasets.mjs --check",
+    "package:source": "node scripts/package.mjs",
+    "check:package": "node scripts/check-package.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.300",
