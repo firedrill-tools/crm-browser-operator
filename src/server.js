@@ -1,37 +1,40 @@
-import express from "express";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { Store } from "./state.js";
-
-const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const escape = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-const layout = (title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)} | Meridian CRM</title><link rel="stylesheet" href="/assets/style.css"></head><body><header><div class="brand">MERIDIAN <span>/ CRM</span></div><span class="header-right">LOCAL CONTACT WORKSPACE</span></header><main>${body}</main></body></html>`;
-
-export function createApp(file) {
-  const store = new Store(file); const app = express();
-  app.use(express.urlencoded({ extended: false })); app.use("/assets", express.static(path.join(root, "public")));
-  app.get("/", (req, res) => {
-    const query = String(req.query.q || "").trim().toLowerCase();
-    const contacts = store.read().contacts.filter((item) => !query || `${item.name} ${item.email} ${item.company}`.toLowerCase().includes(query));
-    const rows = contacts.map((item) => `<tr><td><strong>${escape(item.name)}</strong><small>${escape(item.id)}</small></td><td>${escape(item.email)}</td><td>${escape(item.company)}</td><td><span class="stage">${escape(item.stage)}</span></td><td><a href="/contacts/${escape(item.id)}">Open ${escape(item.id)} →</a></td></tr>`).join("");
-    res.send(layout("Contacts", `<div class="eyebrow">PEOPLE / DIRECTORY</div><h1>Know the exact contact.</h1><p class="intro">Find by email or account before changing a record. Names may repeat.</p><form method="get" class="search"><label for="query">Search contacts</label><div><input id="query" name="q" value="${escape(req.query.q || "")}" placeholder="Name, email, or company"><button>Search</button></div></form><div class="table-head"><h2>Contacts</h2><span>${contacts.length} records</span></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Stage</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="5">No matching contacts</td></tr>'}</tbody></table></div>`));
-  });
-  app.get("/contacts/:id", (req, res) => {
-    const contact = store.read().contacts.find((item) => item.id === req.params.id);
-    if (!contact) return res.status(404).send(layout("Not found", "<h1>Contact not found</h1>"));
-    const saved = req.query.saved ? '<div role="status" class="notice">Changes saved to this exact contact.</div>' : "";
-    const options = ["Lead", "Qualified", "Customer"].map((stage) => `<option value="${stage}" ${stage === contact.stage ? "selected" : ""}>${stage}</option>`).join("");
-    res.send(layout(contact.name, `<a class="back" href="/">← Contacts</a><div class="eyebrow">CONTACT / ${escape(contact.id)}</div><h1>${escape(contact.name)}</h1><p class="intro">${escape(contact.email)} · ${escape(contact.company)} · Revision ${contact.revision}</p>${saved}<div class="columns"><section class="panel"><div class="panel-head"><h2>Identity</h2><span>READ ONLY</span></div><dl><div><dt>Record ID</dt><dd>${escape(contact.id)}</dd></div><div><dt>Email</dt><dd>${escape(contact.email)}</dd></div><div><dt>Company</dt><dd>${escape(contact.company)}</dd></div><div><dt>Revision</dt><dd>${contact.revision}</dd></div></dl></section><section class="panel"><div class="panel-head"><h2>Contact details</h2><span>CONTROLLED WRITE</span></div><form method="post" action="/contacts/${escape(contact.id)}"><input type="hidden" name="revision" value="${contact.revision}"><label for="phone">Phone</label><input id="phone" name="phone" value="${escape(contact.phone)}" required><label for="stage">Lifecycle stage</label><select id="stage" name="stage">${options}</select><button>Save contact</button></form></section></div>`));
-  });
-  app.post("/contacts/:id", (req, res) => {
-    const result = store.update(req.params.id, req.body);
-    if (result.error) return res.status(result.error === "contact_not_found" ? 404 : 409).send(layout("Save blocked", `<a class="back" href="/contacts/${escape(req.params.id)}">← Contact</a><div role="alert" class="warning"><h1>Could not save this contact.</h1><p>${escape(result.error)}. Reload the record before retrying.</p></div>`));
-    res.redirect(303, `/contacts/${encodeURIComponent(req.params.id)}?saved=1`);
-  });
-  app.get("/api/state", (_req, res) => res.json(store.read()));
-  return app;
+import express from 'express';
+import path from 'node:path';
+import fs from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {z} from 'zod';
+import {Store} from './state.js';
+import {digest,targetSchema,matches,same} from './schema.js';
+import {parseJSON} from './json.js';
+const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+export const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+const layout=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)} | Meridian CRM</title><link rel="stylesheet" href="/assets/style.css"></head><body><header><div class="brand">MERIDIAN <span>/ CRM</span></div><span class="header-right">LOCAL CONTACT WORKSPACE</span></header><main>${body}</main></body></html>`;
+const errorPage=(reason,id=null)=>layout('Save blocked',`<a class="back" href="${id?'/contacts/'+encodeURIComponent(id):'/'}">← ${id?'Contact':'Contacts'}</a><div role="alert" class="warning"><h1>Could not save this contact.</h1><p>${escape(reason)}. Reload the exact record before retrying.</p></div>`);
+const registration=z.strictObject({task_sha256:digest,allow_writes:z.boolean(),target:targetSchema.nullable()}),form=z.strictObject({read_id:z.string().uuid(),read_sha256:digest,revision:z.string().regex(/^[1-9]\d{0,15}$/).refine(v=>Number.isSafeInteger(Number(v))),phone:z.string().max(20),stage:z.string().max(20)});
+function credential(req){const value=req.headers['x-crm-operation'];if(value===undefined)return null;if(typeof value!=='string')throw Error('unknown_operation');return value;}
+function query(req,allowed){const p=new URL(req.originalUrl,'http://local').searchParams;if([...p.keys()].some(k=>!allowed.includes(k))||allowed.some(k=>p.getAll(k).length>1))throw Error('invalid_query');return p;}
+export function createApp(file){
+ const store=new Store(file),app=express();app.locals.store=store;
+ app.use((req,res,next)=>{res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'none'; object-src 'none'; frame-src 'none'; form-action 'self'; base-uri 'none'");res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');try{const host=new URL('http://'+req.headers.host);if(host.username||host.password||!['127.0.0.1','localhost'].includes(host.hostname)||Number(host.port||80)!==req.socket.localPort||host.pathname!=='/'||host.search||host.hash)throw Error('invalid_host');if(req.method==='POST'&&req.headers.origin&&req.headers.origin!==host.origin)throw Error('foreign_origin');next();}catch{res.status(403).send(errorPage('local_origin_required'));}});
+ app.use(express.raw({type:()=>true,limit:'1mb'}));app.use((req,res,next)=>{if(!Buffer.isBuffer(req.body))return next();try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(req.body),type=(req.get('content-type')??'').split(';')[0];if(type==='application/json')req.body=parseJSON(raw);else if(type==='application/x-www-form-urlencoded'){const body=Object.create(null);for(const pair of raw.split('&')){const n=pair.indexOf('='),key=decodeURIComponent((n<0?pair:pair.slice(0,n)).replaceAll('+',' ')),value=decodeURIComponent((n<0?'':pair.slice(n+1)).replaceAll('+',' '));if(Object.hasOwn(body,key))throw Error('duplicate form field');body[key]=value;}req.body=body;}else throw Error('unsupported content type');next();}catch{res.status(400).send(errorPage('ambiguous_or_invalid_request'));}});
+ app.use('/assets',express.static(path.join(root,'public')));
+ app.post('/api/operator-sessions',(req,res)=>{const b=registration.parse(req.body);res.status(201).json(store.registerOperation(b.task_sha256,b.allow_writes,b.target));});
+ app.post('/api/operator-sessions/close',(req,res)=>{z.strictObject({}).parse(req.body);res.json(store.closeOperation(credential(req)));});
+ app.get('/api/source',(req,res)=>{const s=store.snapshot();store.operation(s.state,credential(req),true);res.json({synthetic:true,version:1,instance_id:s.state.instance_id??null,sha256:s.digest,body_base64:s.bytes.toString('base64')});});
+ app.get('/api/state',(req,res)=>{const state=store.read();store.operation(state,credential(req));res.json(state);});
+ app.get('/',(req,res)=>{
+  const state=store.read();store.operation(state,credential(req));const params=query(req,['q']),text=params.get('q')??'';if(text.length>240||/[\x00-\x1f\x7f]/.test(text))throw Error('invalid_search');const term=text.trim().toLowerCase(),contacts=state.contacts.filter(c=>!term||`${c.name} ${c.email} ${c.company}`.toLowerCase().includes(term));
+  const rows=contacts.map(c=>`<tr><td><strong>${escape(c.name)}</strong><small>${escape(c.id)}</small></td><td>${escape(c.email)}</td><td>${escape(c.company)}</td><td><span class="stage">${escape(c.stage)}</span></td><td><a href="/contacts/${encodeURIComponent(c.id)}">Open ${escape(c.id)} →</a></td></tr>`).join('');
+  res.send(layout('Contacts',`<div class="eyebrow">PEOPLE / DIRECTORY</div><h1>Know the exact contact.</h1><p class="intro">Find by email or account before changing a record. Names may repeat.</p><form method="get" class="search"><label for="query">Search contacts</label><div><input id="query" name="q" value="${escape(text)}" placeholder="Name, email, or company"><button>Search</button></div></form><div class="table-head"><h2>Contacts</h2><span>${contacts.length} records</span></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Stage</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5">No matching contacts</td></tr>'}</tbody></table></div>`));
+ });
+ app.get('/contacts/:id',(req,res)=>{
+  const params=query(req,['receipt']),receipt=params.get('receipt');if(receipt&&!z.string().uuid().safeParse(receipt).success)throw Error('invalid_receipt');const credentialValue=credential(req);if(receipt){const initial=store.read(),initialOp=store.operation(initial,credentialValue),candidate=initial.reads?.find(r=>r.id===receipt);if(!candidate||candidate.source.contact.id!==req.params.id||candidate.scope.operation_id!==(initialOp?.id??null)||!candidate.decision||candidate.status==='observed')throw Error('unknown_saved_receipt');}const result=store.observeContact(req.params.id,credentialValue);if(result.error)return res.status(404).send(errorPage(result.error));const {contact,read}=result,state=store.read(),op=store.operation(state,credentialValue),prior=receipt?state.reads?.find(r=>r.id===receipt):null;
+  let saved='';if(receipt){if(!prior||prior.source.contact.id!==contact.id||prior.scope.operation_id!==(op?.id??null)||!prior.decision||prior.status==='observed')throw Error('unknown_saved_receipt');saved=same(prior.decision.after,contact)?`<div role="status" class="notice">${prior.status==='unchanged'?'No changes were needed for this exact contact.':'Changes saved to this exact contact.'}</div>`:'<div role="status" class="notice">The earlier saved record has since changed. Read the current details below.</div>';}
+  const options=['Lead','Qualified','Customer'].map(stage=>`<option value="${stage}" ${stage===contact.stage?'selected':''}>${stage}</option>`).join(''),allowed=!op||op.allow_writes&&matches(contact,op.target),controls=allowed?`<form method="post" action="/contacts/${encodeURIComponent(contact.id)}"><input type="hidden" name="revision" value="${contact.revision}"><input type="hidden" name="read_id" value="${read.id}"><input type="hidden" name="read_sha256" value="${read.content_sha256}"><label for="phone">Phone</label><input id="phone" name="phone" value="${escape(contact.phone)}" required><label for="stage">Lifecycle stage</label><select id="stage" name="stage">${options}</select><button>Save contact</button></form>`:'<div role="status" class="notice">Read only. This operation does not allow an update to this exact contact.</div>';
+  res.send(layout(contact.name,`<a class="back" href="/">← Contacts</a><div class="eyebrow">CONTACT / ${escape(contact.id)}</div><h1>${escape(contact.name)}</h1><p class="intro">${escape(contact.email)} · ${escape(contact.company)} · Revision ${contact.revision}</p>${saved}<div class="columns"><section class="panel"><div class="panel-head"><h2>Identity</h2><span>READ ONLY</span></div><dl><div><dt>Record ID</dt><dd>${escape(contact.id)}</dd></div><div><dt>Email</dt><dd>${escape(contact.email)}</dd></div><div><dt>Company</dt><dd>${escape(contact.company)}</dd></div><div><dt>Revision</dt><dd>${contact.revision}</dd></div></dl></section><section class="panel"><div class="panel-head"><h2>Contact details</h2><span>${allowed?'CONTROLLED WRITE':'READ ONLY'}</span></div>${controls}</section></div>`));
+ });
+ app.post('/contacts/:id',(req,res)=>{const b=form.parse(req.body),result=store.update(req.params.id,{...b,revision:Number(b.revision)},credential(req));if(result.error)return res.status(result.error==='contact_not_found'?404:409).send(errorPage(result.error,req.params.id));res.redirect(303,`/contacts/${encodeURIComponent(req.params.id)}?receipt=${result.read_id}`);});
+ app.use((error,_req,res,_next)=>res.status(error.status===413?413:422).send(errorPage(['operation_closed','unknown_operation'].includes(error?.message)?error.message:'invalid_source_or_request')));return app;
 }
-export function startServer(file, port = 8787) { return new Promise((resolve) => { const server = createApp(file).listen(port, "127.0.0.1", () => resolve(server)); }); }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  startServer(path.resolve(process.env.CRM_WORKSPACE_FILE || "workspace.json"), Number(process.env.PORT || 8787)).then(() => console.log("CRM portal listening on 127.0.0.1"));
-}
+export function startServer(file,port=8787){return new Promise((resolve,reject)=>{const server=createApp(file).listen(port,'127.0.0.1',()=>resolve(server));server.once('error',reject);});}
+if(process.argv[1]&&fs.existsSync(process.argv[1])&&fs.realpathSync(process.argv[1])===fileURLToPath(import.meta.url))startServer(path.resolve(process.env.CRM_WORKSPACE_FILE||'workspace.json'),Number(process.env.PORT||8787)).then(server=>console.log(`CRM portal on http://127.0.0.1:${server.address().port}`)).catch(error=>{console.error(error.message);process.exitCode=1;});

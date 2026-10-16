@@ -20,15 +20,16 @@ async function connect(baseUrl, captures, allowWrites) {
   return { client, call };
 }
 const body = (result) => JSON.parse(result.content[0].text);
+function update(store,id,input){const {read}=store.observeContact(id);return store.update(id,{...input,read_id:read.id,read_sha256:read.content_sha256});}
 
 test("duplicate names require exact email and stale revisions reject competing changes", () => {
   const { store } = setup();
   const names = store.read().contacts.filter((item) => item.name === "Alex Rivera");
   assert.equal(names.length, 2);
   assert.notEqual(names[0].email, names[1].email);
-  const actor = store.update("C-102", { revision: 1, phone: "+1-416-555-7777", stage: "Customer" });
+  const actor = update(store,"C-102", { revision: 1, phone: "+1-416-555-7777", stage: "Customer" });
   assert.equal(actor.contact.revision, 2);
-  assert.equal(store.update("C-102", { revision: 1, phone: "+1-416-555-8888", stage: "Lead" }).error, "stale_revision");
+  assert.equal(update(store,"C-102", { revision: 1, phone: "+1-416-555-8888", stage: "Lead" }).error, "stale_revision");
   assert.equal(store.read().contacts[1].phone, "+1-416-555-7777");
 });
 
@@ -64,7 +65,7 @@ test("browser MCP performs real actions, captures pages, and blocks writes witho
 
       await writable.call("click", { role: "link", name: "← Contacts" });
       await writable.call("click", { role: "link", name: "Open C-102 →" });
-      store.update("C-102", { revision: 1, phone: "+1-416-555-7777", stage: "Customer" });
+      update(store,"C-102", { revision: 1, phone: "+1-416-555-7777", stage: "Customer" });
       await writable.call("fill", { label: "Phone", value: "+1-416-555-8888" });
       const stale = body(await writable.call("click", { role: "button", name: "Save contact" }));
       assert.match(stale.text, /stale_revision/);
