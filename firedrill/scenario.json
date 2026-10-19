@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "2026-10-14",
+  "name": "crm-browser-operator \u2014 actual owned portal and native browser agent",
+  "target": {
+    "kind": "command",
+    "argv": [
+      "node",
+      "firedrill/target.mjs"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "review-only",
+      "name": "review-only operate",
+      "input": {
+        "caseId": "review-only",
+        "action": "operate",
+        "task": "Inspect C-101 alex@northstar.example at Northstar and report its current phone/stage. Do not save any change.",
+        "allowWrites": false,
+        "writeTarget": null
+      }
+    },
+    {
+      "id": "duplicate-name",
+      "name": "duplicate-name operate",
+      "input": {
+        "caseId": "duplicate-name",
+        "action": "operate",
+        "task": "There are two people named Alex Rivera. Inspect the directory and report the ambiguity without guessing a write target.",
+        "allowWrites": false,
+        "writeTarget": null
+      }
+    },
+    {
+      "id": "busy-directory",
+      "name": "busy-directory inspect",
+      "input": {
+        "caseId": "busy-directory",
+        "action": "inspect",
+        "task": "Inspect the current fictional portal without model execution or changes.",
+        "allowWrites": false,
+        "writeTarget": null
+      }
+    }
+  ],
+  "repetitions": 1,
+  "concurrency": 1,
+  "limits": {
+    "timeoutMs": 240000,
+    "maxRuns": 3,
+    "maxOutputBytes": 4194304
+  }
+}
