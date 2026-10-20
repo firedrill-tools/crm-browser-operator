@@ -62,7 +62,7 @@ Private UUID run directories (0700) contain atomic `trace.json` and nested brows
 
 `npm test` now includes73checks and uses the actual bundled CLI and SDK against owned loopback HTTP, public SDK MCP/PreToolUse, actual stdio MCP and real Chromium/portal forms/captures. Source/native/browser/CLI checks cover current identity, concurrency, original unfinished output, readonly target enforcement, stale changes, source/usage/partial-effect/recording/cancellation/deadline/startup/close faults and all three real CLI signals. Controlled provider responses establish transport/application behavior, not live Claude decision quality or billing. All12 actual SDK/stdio/browser case paths and private CLI init/readback/reset checks pass locally. The local fresh complete/production-only gate passes; exact pushed Linux source artifact verification is recorded in the portfolio catalog/master ledger.
 
-No real CRM/account/notification action exists. Live enabled model/key/budget/semantic+billing review, authenticated Firedrill persistence verification and license stay parked. This public repository has no selected project license. See [COMPATIBILITY.md](COMPATIBILITY.md) and the [portfolio catalog](https://github.com/firedrill-tools/firedrill-example-catalog).
+No real CRM/account/notification action exists. Live enabled model/key/budget/semantic+billing review, authenticated Firedrill persistence verification and license stay parked. This public repository has no selected project license. See [COMPATIBILITY.md](COMPATIBILITY.md) and the [Firedrill examples](https://docs.firedrill.run/guides/examples).
 
 ## Current Firedrill integration
 
