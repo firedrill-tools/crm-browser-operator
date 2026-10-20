@@ -4,6 +4,8 @@ A Claude Agent SDK assistant updates synthetic CRM contacts through actual Chrom
 
 Simulate this Claude Agent SDK AI agent with [Firedrill](https://firedrill.run/), a simulation platform for AI agents. Start with the [Firedrill setup and simulation guide](firedrill/README.md); your coding agent can operate it while this application's runner stays in your repository or CI.
 
+This example repository is publicly viewable. A project license has not been selected.
+
 ## Run
 
 Requires Node22.13+, npm and Playwright Chromium. Twelve coherent populations and private initialization/reset are implemented; fresh distribution qualification is recorded in [PLAN.md](PLAN.md). The original fixture is synthetic and unchanged.
@@ -55,12 +57,12 @@ Private UUID run directories (0700) contain atomic `trace.json` and nested brows
 
 ## Verification and remaining work
 
-`npm run check:package` builds a portable complete source archive with an exact file/size/mode/hash manifest, extracts it outside checkout and installs fresh locked complete and production-only dependencies. It runs all73checks/deterministic authoring/all12 private CLI case operations, then normal installed symlink CLI with actual bundled SDK/native SSE/public hook/SDK bridge/stdio MCP/Chromium and real captures, mobile no-overflow, missing-key receipt and pending native SIGTERM drain. Delivered files and repeated portable USTAR/gzip bytes must remain unchanged. Source archive, qualification report and genuine synthetic browser PNGs go under ignored `dist/`; private source artifact creation grants no license/public release.
+`npm run check:package` builds a portable complete source archive with an exact file/size/mode/hash manifest, extracts it outside checkout and installs fresh locked complete and production-only dependencies. It runs all73checks/deterministic authoring/all12 private CLI case operations, then normal installed symlink CLI with actual bundled SDK/native SSE/public hook/SDK bridge/stdio MCP/Chromium and real captures, mobile no-overflow, missing-key receipt and pending native SIGTERM drain. Delivered files and repeated portable USTAR/gzip bytes must remain unchanged. Source archive, qualification report and genuine synthetic browser PNGs go under ignored `dist/`; creating a source archive does not select a license or publish a package.
 
 
 `npm test` now includes73checks and uses the actual bundled CLI and SDK against owned loopback HTTP, public SDK MCP/PreToolUse, actual stdio MCP and real Chromium/portal forms/captures. Source/native/browser/CLI checks cover current identity, concurrency, original unfinished output, readonly target enforcement, stale changes, source/usage/partial-effect/recording/cancellation/deadline/startup/close faults and all three real CLI signals. Controlled provider responses establish transport/application behavior, not live Claude decision quality or billing. All12 actual SDK/stdio/browser case paths and private CLI init/readback/reset checks pass locally. The local fresh complete/production-only gate passes; exact pushed Linux source artifact verification is recorded in the portfolio catalog/master ledger.
 
-No real CRM/account/notification action exists. Live enabled model/key/budget/semantic+billing review, authenticated Firedrill persistence verification and publication/license stay parked. This private repository has no license. See [COMPATIBILITY.md](COMPATIBILITY.md) and the [portfolio catalog](https://github.com/firedrill-tools/firedrill-example-catalog).
+No real CRM/account/notification action exists. Live enabled model/key/budget/semantic+billing review, authenticated Firedrill persistence verification and license stay parked. This public repository has no selected project license. See [COMPATIBILITY.md](COMPATIBILITY.md) and the [portfolio catalog](https://github.com/firedrill-tools/firedrill-example-catalog).
 
 ## Current Firedrill integration
 
